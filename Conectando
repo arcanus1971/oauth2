@@ -1,0 +1,35 @@
+// Declarar variables necesarias
+VAR
+    HttpClient : DotNet "System.Net.Http.HttpClient";
+    HttpContent : DotNet "System.Net.Http.StringContent";
+    HttpResponseMessage : DotNet "System.Net.Http.HttpResponseMessage";
+    JsonText : Text;
+    SqlConnection : DotNet "System.Data.SqlClient.SqlConnection";
+    SqlCommand : DotNet "System.Data.SqlClient.SqlCommand";
+    SqlDataReader : DotNet "System.Data.SqlClient.SqlDataReader";
+    Data : Text;
+
+// Conectar a la base de datos SQL Server
+SqlConnection := SqlConnection.SqlConnection('Server=your_server;Database=your_db;User Id=your_user;Password=your_password;');
+SqlConnection.Open();
+SqlCommand := SqlCommand.SqlCommand('SELECT * FROM your_table', SqlConnection);
+SqlDataReader := SqlCommand.ExecuteReader();
+
+// Leer datos de la base de datos
+WHILE SqlDataReader.Read DO BEGIN
+    // Formatear los datos en JSON (simplificado para este ejemplo)
+    Data := '{ "field1": "' + FORMAT(SqlDataReader.Item('field1')) + '", "field2": "' + FORMAT(SqlDataReader.Item('field2')) + '" }';
+    JsonText := JsonText + Data;
+END;
+
+SqlConnection.Close();
+
+// Enviar datos a la API de Dynamics 365
+HttpClient := HttpClient.HttpClient();
+HttpContent := HttpContent.StringContent(JsonText, Encoding.UTF8, 'application/json');
+HttpResponseMessage := HttpClient.PostAsync('https://your_dynamics_365_instance.api.crm.dynamics.com/api/data/v9.0/your_entity', HttpContent).Result;
+
+IF NOT HttpResponseMessage.IsSuccessStatusCode THEN
+    ERROR('Error sending data: ' + HttpResponseMessage.ReasonPhrase);
+
+MESSAGE('Data sent successfully!');
